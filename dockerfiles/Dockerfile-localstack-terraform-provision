@@ -1,0 +1,31 @@
+# Based on https://baptiste.bouchereau.pro/tutorial/automatic-provisioning-of-localstack/
+
+FROM docker:20.10.10
+
+RUN apk update && \
+    apk upgrade && \
+    apk add --no-cache bash wget unzip
+
+# Install AWS CLI
+RUN echo -e 'http://dl-cdn.alpinelinux.org/alpine/edge/main\nhttp://dl-cdn.alpinelinux.org/alpine/edge/community\nhttp://dl-cdn.alpinelinux.org/alpine/edge/testing' > /etc/apk/repositories && \
+    wget "s3.amazonaws.com/aws-cli/awscli-bundle.zip" -O "awscli-bundle.zip" && \
+    unzip awscli-bundle.zip && \
+    apk add --update groff less python3 curl && \
+    ln -s /usr/bin/python3 /usr/bin/python && \
+    rm /var/cache/apk/* && \
+    ./awscli-bundle/install -i /usr/local/aws -b /usr/local/bin/aws && \
+    rm awscli-bundle.zip && \
+    rm -rf awscli-bundle
+
+# Install Terraform
+RUN wget https://releases.hashicorp.com/terraform/1.1.3/terraform_1.1.3_linux_amd64.zip \
+  && unzip terraform_1.1.3_linux_amd64 \
+  && mv terraform /usr/local/bin/terraform \
+  && chmod +x /usr/local/bin/terraform
+
+RUN mkdir -p /terraform
+WORKDIR /terraform
+
+COPY scripts/localstack-terraform-provision.sh /localstack-terraform-provision.sh
+
+CMD ["/bin/bash", "/localstack-terraform-provision.sh"]

@@ -1,0 +1,38 @@
+{
+  "name": "local-dev-env-blog-example",
+  "version": "0.0.1",
+  "description": "Example project for DoorDash local development blog post",
+  "engines": {
+    "node": ">= 16.13 <17"
+  },
+  "dependencies": {
+    "@aws-sdk/client-sqs": "^3.178.0",
+    "express": "^4.18.1",
+    "pg": "^8.8.0",
+    "tslib": "^2.4.0",
+    "typeorm": "^0.3.10",
+    "typescript": "^4.6"
+  },
+  "devDependencies": {
+    "@aws-sdk/types": "^3.178.0",
+    "@types/express": "^4.17.13",
+    "@types/node": "~16.11",
+    "@typescript-eslint/eslint-plugin": "^5.8.0",
+    "@typescript-eslint/parser": "^5.8.0",
+    "eslint": "^8.5.0",
+    "eslint-config-prettier": "^8.5.0",
+    "eslint-plugin-jest": "~26.1",
+    "eslint-plugin-prettier": "^4.0.0",
+    "nodemon": "^2.0.16",
+    "prettier": "^2.5.1",
+    "ts-node": "^10.7.0"
+  },
+  "scripts": {
+    "start": "node build/src/server.js",
+    "dev": "nodemon src/server.ts --signal SIGINT",
+    "build": "tsc",
+    "clean": "rm -rf node_modules db dist package-lock.json",
+    "lint": "eslint src/ --ext .ts ."
+  },
+  "author": "Mac Watrous <mac.watrous@doordash.com>"
+}

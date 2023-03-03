@@ -1,0 +1,89 @@
+# Copyright 2023 DoorDash, Inc.
+
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+
+#     http://www.apache.org/licenses/LICENSE-2.0
+
+# Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the specific language governing permissions and limitations under the License.
+
+version: '3.8'
+
+services:
+  localstack:
+    container_name: 'localstack'
+    image: localstack/localstack
+    ports:
+      - '4566:4566'
+    environment:
+      - DOCKER_HOST=unix:///var/run/docker.sock
+    volumes:
+      - '${TMPDIR:-/tmp}/localstack:/var/lib/localstack'
+      - '/var/run/docker.sock:/var/run/docker.sock'
+    depends_on:
+      - localstack-terraform-provision # We wait for localstack-terraform-provision container to start so that it can watch for this localstack container to be ready
+  localstack-terraform-provision:
+    build:
+      context: .
+      dockerfile: ./dockerfiles/Dockerfile-localstack-terraform-provision
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ./terraform:/terraform
+      - ./scripts:/scripts
+  postgres:
+    container_name: 'postgres'
+    image: public.ecr.aws/docker/library/postgres:14.3-alpine
+    environment:
+      - POSTGRES_USER=test
+      - POSTGRES_PASSWORD=password
+      - POSTGRES_DB=example
+    ports:
+      - '5432:5432'
+    volumes:
+      - ./db:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U test -d example']
+      interval: 5s
+      timeout: 5s
+      retries: 5
+  api:
+    container_name: example-api
+    build:
+      context: .
+      dockerfile: ./dockerfiles/Dockerfile-api-dev
+    ports:
+      - '8080:8080'
+    depends_on:
+      localstack:
+        condition: service_started
+      localstack-terraform-provision:
+        condition: service_completed_successfully
+      postgres:
+        condition: service_healthy
+      postgres-init:
+        condition: service_completed_successfully
+    volumes:
+      - ./src:/home/node/app/src
+    environment:
+      - NODE_ENV=development
+      - POSTGRES_USER=test
+      - POSTGRES_PASSWORD=password
+      - POSTGRES_DATABASE_NAME=example
+      - POSTGRES_PORT=5432
+      - POSTGRES_HOST=postgres
+      - AWS_REGION=us-west-2
+      - AWS_ACCESS_KEY_ID=fake
+      - AWS_SECRET_ACCESS_KEY=fake
+      - SQS_NOTES_QUEUE_URL=http://localstack:4566/000000000000/notes-queue
+    command: ['npm', 'run', 'dev']
+  postgres-init:
+    container_name: postgres-init
+    image: public.ecr.aws/docker/library/postgres:14.3-alpine
+    volumes:
+      - './scripts:/scripts'
+    entrypoint: '/bin/bash'
+    command: ['/scripts/local-postgres-init.sh']
+    depends_on:
+      postgres:
+        condition: service_healthy
