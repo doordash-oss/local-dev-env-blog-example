@@ -2,7 +2,7 @@
 
 _By Mac Watrous mac.watrous@doordash.com_
 
-This repository is intended as a companion piece for the following blog:
+This repository is intended as a companion piece for the following blog: https://doordash.engineering/2023/03/07/how-to-speed-up-local-development-of-a-docker-application-running-on-aws/
 
 ## Prerequisites
 
